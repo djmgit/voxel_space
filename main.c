@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <math.h>
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 200
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 400
 #define FPS 60
 #define MAP_N 1024
 #define SCALE_FACTOR 100.0
@@ -16,6 +16,11 @@ typedef struct {
     float y;
     float height;
     float angle;
+    float horizon;
+    float speed;
+    float rotspeed;
+    float heightspeed;
+    float horizonspeed;
     float zfar;
 } camera_t;
 
@@ -23,31 +28,67 @@ camera_t camera = {
     .x = 512,
     .y = 512,
     .height = 150,
-    .angle = 0.0,
+    .angle = 1.5 * 3.141592,
+    .horizon = 100,
+    .speed = 60,
+    .rotspeed = 0.5,
+    .heightspeed = 100,
+    .horizonspeed = 100,
     .zfar = 600
 };
 
-void ProcessInput() {
+void ProcessInput(float timeDelta) {
     if (IsKeyDown(KEY_UP)) {
-        camera.x += cos(camera.angle);
-        camera.y += sin(camera.angle);
+        camera.x += camera.speed * cos(camera.angle) * timeDelta;
+        camera.y += camera.speed * sin(camera.angle) * timeDelta;
     }
     if (IsKeyDown(KEY_DOWN)) {
-        camera.x -= cos(camera.angle);
-        camera.y -= sin(camera.angle);
+        camera.x -= camera.speed * cos(camera.angle) * timeDelta;
+        camera.y -= camera.speed * sin(camera.angle) * timeDelta;
     }
     if (IsKeyDown(KEY_LEFT)) {
-        camera.angle -= 0.01;
+        camera.angle -= camera.rotspeed * timeDelta;
     }
     if (IsKeyDown(KEY_RIGHT)) {
-        camera.angle += 0.01;
+        camera.angle += camera.rotspeed * timeDelta;
     }
     if (IsKeyDown(KEY_E)) {
-        camera.height++;
+        camera.height += camera.heightspeed * timeDelta;
     }
     if (IsKeyDown(KEY_D)) {
-        camera.height--;
+        camera.height -= camera.heightspeed * timeDelta;
     }
+    if (IsKeyDown(KEY_Q)) {
+        camera.horizon += camera.horizonspeed * timeDelta;
+    }
+    if (IsKeyDown(KEY_W)) {
+        camera.horizon -= camera.horizonspeed * timeDelta;
+    }
+}
+
+float GetLinearFogFactor(int fogEnd, int fogStart, int z) {
+    return (fogEnd - z) / (fogEnd - fogStart);
+}
+
+float GetExponentialFogFactor(float fogDensity, int z) {
+    return (1 / exp(z * fogDensity));
+}
+
+Color GetScaledPixel(Color pixel, Color fog, float fogFactor) {
+    pixel.r = pixel.r * fogFactor;
+    pixel.g = pixel.g * fogFactor;
+    pixel.b = pixel.b * fogFactor;
+    pixel.a = pixel.a * fogFactor;
+    fog.r = fog.r * (1 - fogFactor);
+    fog.g = fog.g * (1 - fogFactor);
+    fog.b = fog.b * (1 - fogFactor);
+    fog.a = fog.a * (1 - fogFactor);
+    pixel.r = pixel.r + fog.r;
+    pixel.g = pixel.g + fog.g;
+    pixel.b = pixel.b + fog.b;
+    pixel.a = pixel.a + fog.a;
+
+    return pixel;
 }
 
 int main() {
@@ -62,8 +103,9 @@ int main() {
     SetTargetFPS(FPS);
 
     while(!WindowShouldClose()) {
-        ClearBackground(WHITE);
-        ProcessInput();
+        ClearBackground(RAYWHITE);
+        float timeDelta = GetFrameTime();
+        ProcessInput(timeDelta);
 
         float sinangle = sin(camera.angle);
         float cosangle = cos(camera.angle);
@@ -86,24 +128,28 @@ int main() {
 
                 for (size_t z = 1; z < camera.zfar; z++) {
                     rx += deltaX;
-                    ry -= deltaY;
+                    ry += deltaY;
 
-                    int mapoffset = (MAP_N * ((int)(ry) & 1023)) + ((int)(rx) & 1023);
+                    int mapoffset = (MAP_N * ((int)(ry) & (MAP_N - 1))) + ((int)(rx) & (MAP_N - 1));
                     /**printf("%u %u %u ", (int)rx, (int)ry, mapoffset);
                     if (mapoffset < 1024*1024) {
                         printf("True\n");
                     } else {
                         printf("False\n");
                     }**/
-                    int heightOnScreen = (int)((camera.height - heightMap[mapoffset].r) / z * SCALE_FACTOR);
-                    heightOnScreen = heightOnScreen < 0 ? 0: heightOnScreen;
-                    heightOnScreen = heightOnScreen > SCREEN_HEIGHT ? SCREEN_HEIGHT - 1: heightOnScreen;
+                    int projHeight = (int)((camera.height - heightMap[mapoffset].r) / z * SCALE_FACTOR + camera.horizon);
+                    projHeight = projHeight < 0 ? 0: projHeight;
+                    projHeight = projHeight > SCREEN_HEIGHT ? SCREEN_HEIGHT - 1: projHeight;
 
-                    if (heightOnScreen < maxHeight) {
-                        for (size_t y = heightOnScreen; y < maxHeight; y++) {
-                            DrawPixel(i, y, colorMap[mapoffset]);
+                    if (projHeight < maxHeight) {
+                        for (size_t y = projHeight; y < maxHeight; y++) {
+                            Color pixel = colorMap[mapoffset];
+                            //Color scaledPixel = GetScaledPixel(pixel, (Color){180, 180, 180, 100}, GetLinearFogFactor(600, 300, z));
+                            Color scaledPixel = GetScaledPixel(pixel, (Color){180, 180, 180, 255}, GetExponentialFogFactor(0.0025, z));
+
+                            DrawPixel(i, y, scaledPixel);
                         }
-                        maxHeight = heightOnScreen;
+                        maxHeight = projHeight;
                     }
                 }
             }    
