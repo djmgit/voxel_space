@@ -21,6 +21,8 @@ typedef struct {
     float rotspeed;
     float heightspeed;
     float horizonspeed;
+    float tiltspeed;
+    float tilt;
     float zfar;
 } camera_t;
 
@@ -34,6 +36,8 @@ camera_t camera = {
     .rotspeed = 0.5,
     .heightspeed = 100,
     .horizonspeed = 100,
+    .tiltspeed = 1.5,
+    .tilt = 0,
     .zfar = 600
 };
 
@@ -52,17 +56,32 @@ void ProcessInput(float timeDelta) {
     if (IsKeyDown(KEY_RIGHT)) {
         camera.angle += camera.rotspeed * timeDelta;
     }
-    if (IsKeyDown(KEY_E)) {
+    if (IsKeyDown(KEY_Q)) {
         camera.height += camera.heightspeed * timeDelta;
     }
-    if (IsKeyDown(KEY_D)) {
+    if (IsKeyDown(KEY_E)) {
         camera.height -= camera.heightspeed * timeDelta;
     }
-    if (IsKeyDown(KEY_Q)) {
+    if (IsKeyDown(KEY_W)) {
         camera.horizon += camera.horizonspeed * timeDelta;
     }
-    if (IsKeyDown(KEY_W)) {
+    if (IsKeyDown(KEY_S)) {
         camera.horizon -= camera.horizonspeed * timeDelta;
+    }
+    if (IsKeyDown(KEY_A)) {
+        camera.tilt -= camera.tiltspeed * timeDelta;
+        camera.tilt = camera.tilt < -1 ? -1 : camera.tilt;
+    }
+    if (IsKeyDown(KEY_D)) {
+        camera.tilt += camera.tiltspeed * timeDelta;
+        camera.tilt = camera.tilt > 1 ? 1 : camera.tilt;
+    }
+
+    if (IsKeyDown(KEY_R)) {
+        camera.angle = 1.5 * 3.141592;
+        camera.tilt = 0;
+        camera.height = 150;
+        camera.horizon = 100;
     }
 }
 
@@ -142,7 +161,9 @@ int main() {
                     projHeight = projHeight > SCREEN_HEIGHT ? SCREEN_HEIGHT - 1: projHeight;
 
                     if (projHeight < maxHeight) {
-                        for (size_t y = projHeight; y < maxHeight; y++) {
+                        float lean = (camera.tilt * (i / (float)SCREEN_WIDTH - 0.5) + 0.5) * SCREEN_HEIGHT / 6;
+
+                        for (size_t y = (projHeight + lean); y < (maxHeight + lean); y++) {
                             Color pixel = colorMap[mapoffset];
                             //Color scaledPixel = GetScaledPixel(pixel, (Color){180, 180, 180, 100}, GetLinearFogFactor(600, 300, z));
                             Color scaledPixel = GetScaledPixel(pixel, (Color){180, 180, 180, 255}, GetExponentialFogFactor(0.0025, z));
