@@ -1,12 +1,17 @@
 #include "raylib.h"
+
+#define RAYGUI_IMPLEMENTATION
+#include "raygui.h"
 #include <stdio.h>
 #include <math.h>
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 400
+#define CONTROLS_HEIGHT 200
 #define FPS 60
 #define MAP_N 1024
 #define SCALE_FACTOR 100.0
+#define NUM_MAPS 29
 
 Color *colorMap = NULL;
 Color *heightMap = NULL;
@@ -40,6 +45,21 @@ camera_t camera = {
     .tilt = 0,
     .zfar = 600
 };
+
+typedef struct {
+    char colorMap[50];
+    char heightMap[50];
+} map_t;
+
+map_t maps[NUM_MAPS];
+
+int fogType = 0;
+float fogDensity = 0.0025;
+float fogStart = 300.0;
+float fogEnd = 600.0;
+int selectedMap = 0;
+int currentSelectedMap = 0;
+int mapSelectorMode = 0;
 
 void ProcessInput(float timeDelta) {
     if (IsKeyDown(KEY_UP)) {
@@ -85,8 +105,8 @@ void ProcessInput(float timeDelta) {
     }
 }
 
-float GetLinearFogFactor(int fogEnd, int fogStart, int z) {
-    return (fogEnd - z) / (fogEnd - fogStart);
+int GetLinearFogFactor(int fogEnd, int fogStart, int z) {
+    return (int)((fogEnd - z) / (fogEnd - fogStart));
 }
 
 float GetExponentialFogFactor(float fogDensity, int z) {
@@ -110,11 +130,40 @@ Color GetScaledPixel(Color pixel, Color fog, float fogFactor) {
     return pixel;
 }
 
+void LoadMaps() {
+    for (size_t i = 0; i < NUM_MAPS; i++) {
+        map_t map;
+        sprintf(map.colorMap, "resources/map%d.color.gif", (int)i);
+        sprintf(map.heightMap, "resources/map%d.height.gif", (int)i);
+        maps[i] = map;
+    }
+    //maps[0] = (map_t){
+        //.colorMap = "resources/map0.color.gif",
+        //.heightMap = "resources/map0.height.gif"
+    //};
+    //maps[1] = (map_t){
+        //.colorMap = "resources/map1.color.gif",
+        //.heightMap = "resources/map1.height.gif"
+    //};
+}
+
+char* DropdownOptions() {
+    char *dropDownText = malloc(NUM_MAPS*6);
+    for (size_t i = 0; i < NUM_MAPS; i++) {
+        char mapName[6];
+        sprintf(mapName, "map%i", (int)i);
+        sprintf(dropDownText, "%s;%s", dropDownText, mapName);
+    }
+    return dropDownText + 1;
+}
+
 int main() {
+    LoadMaps();
+    char *dropDownText = DropdownOptions();
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Voxel space rendering");
     
-    Image colorMapImage = LoadImage("resources/map0.color.gif");
-    Image heightMapImage = LoadImage("resources/map0.height.gif");
+    Image colorMapImage = LoadImage(maps[selectedMap].colorMap);
+    Image heightMapImage = LoadImage(maps[selectedMap].heightMap);
 
     colorMap = LoadImageColors(colorMapImage);
     heightMap = LoadImageColors(heightMapImage);
@@ -123,6 +172,13 @@ int main() {
 
     while(!WindowShouldClose()) {
         ClearBackground(RAYWHITE);
+        if (currentSelectedMap != selectedMap) {
+            selectedMap = currentSelectedMap;
+            colorMapImage = LoadImage(maps[selectedMap].colorMap);
+            heightMapImage = LoadImage(maps[selectedMap].heightMap);
+            colorMap = LoadImageColors(colorMapImage);
+            heightMap = LoadImageColors(heightMapImage);
+        }
         float timeDelta = GetFrameTime();
         ProcessInput(timeDelta);
 
@@ -165,15 +221,29 @@ int main() {
 
                         for (size_t y = (projHeight + lean); y < (maxHeight + lean); y++) {
                             Color pixel = colorMap[mapoffset];
-                            //Color scaledPixel = GetScaledPixel(pixel, (Color){180, 180, 180, 100}, GetLinearFogFactor(600, 300, z));
-                            Color scaledPixel = GetScaledPixel(pixel, (Color){180, 180, 180, 255}, GetExponentialFogFactor(0.0025, z));
+                            Color scaledPixel = GetScaledPixel(pixel, (Color){180, 180, 180, 255}, GetExponentialFogFactor(fogDensity, z));
+                            if (fogType == 1) {
+                                if (fogEnd <= fogStart) {
+                                    fogEnd = fogStart + 1;
+                                }
+                                scaledPixel = GetScaledPixel(pixel, (Color){180, 180, 180, 100}, GetLinearFogFactor((int)fogEnd, (int)fogStart, z));
+                            }
 
                             DrawPixel(i, y, scaledPixel);
                         }
                         maxHeight = projHeight;
                     }
                 }
-            }    
+            }
+            GuiToggleSlider((Rectangle){ 5, 5, 150, 10 }, "Density;Linear", &fogType);
+            if (fogType == 0) {
+                GuiSliderBar((Rectangle){ 70, 20, 150, 10 }, "Fog Density", TextFormat("%1.4f", fogDensity), &fogDensity, 0.0, 0.02);
+            } else {
+                GuiSliderBar((Rectangle){ 70, 20, 150, 10 }, "Fog Start", TextFormat("%3.2f", fogStart), &fogStart, 0.0, camera.zfar*1.0);
+                GuiSliderBar((Rectangle){ 70, 35, 150, 10 }, "Fog End", TextFormat("%3.2f", fogEnd), &fogEnd, fogStart+1, camera.zfar*1.0);
+            }
+            if (GuiDropdownBox((Rectangle){ 480, 5, 150, 10 }, dropDownText, &currentSelectedMap, mapSelectorMode)) mapSelectorMode = !mapSelectorMode;
+            //GuiSliderBar((Rectangle){ 100, 500, 200, 20 }, "Fog Density", NULL, &fogDensity, 0.0, 0.02);
 
         EndDrawing();
     }
