@@ -11,7 +11,7 @@
 #define FPS 60
 #define MAP_N 1024
 #define SCALE_FACTOR 100.0
-#define NUM_MAPS 3
+#define NUM_MAPS 29
 
 Color *colorMap = NULL;
 Color *heightMap = NULL;
@@ -147,8 +147,19 @@ void LoadMaps() {
     //};
 }
 
+char* DropdownOptions() {
+    char *dropDownText = malloc(NUM_MAPS*6);
+    for (size_t i = 0; i < NUM_MAPS; i++) {
+        char mapName[6];
+        sprintf(mapName, "map%i", (int)i);
+        sprintf(dropDownText, "%s;%s", dropDownText, mapName);
+    }
+    return dropDownText + 1;
+}
+
 int main() {
     LoadMaps();
+    char *dropDownText = DropdownOptions();
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Voxel space rendering");
     
     Image colorMapImage = LoadImage(maps[selectedMap].colorMap);
@@ -231,7 +242,7 @@ int main() {
                 GuiSliderBar((Rectangle){ 70, 20, 150, 10 }, "Fog Start", TextFormat("%3.2f", fogStart), &fogStart, 0.0, camera.zfar*1.0);
                 GuiSliderBar((Rectangle){ 70, 35, 150, 10 }, "Fog End", TextFormat("%3.2f", fogEnd), &fogEnd, fogStart+1, camera.zfar*1.0);
             }
-            if (GuiDropdownBox((Rectangle){ 480, 5, 150, 10 }, "Map0;Map1;Map2", &currentSelectedMap, mapSelectorMode)) mapSelectorMode = !mapSelectorMode;
+            if (GuiDropdownBox((Rectangle){ 480, 5, 150, 10 }, dropDownText, &currentSelectedMap, mapSelectorMode)) mapSelectorMode = !mapSelectorMode;
             //GuiSliderBar((Rectangle){ 100, 500, 200, 20 }, "Fog Density", NULL, &fogDensity, 0.0, 0.02);
 
         EndDrawing();
