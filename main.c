@@ -242,12 +242,6 @@ int main() {
                     ry += deltaY;
 
                     int mapoffset = (MAP_N * ((int)(ry) & (MAP_N - 1))) + ((int)(rx) & (MAP_N - 1));
-                    /**printf("%u %u %u ", (int)rx, (int)ry, mapoffset);
-                    if (mapoffset < 1024*1024) {
-                        printf("True\n");
-                    } else {
-                        printf("False\n");
-                    }**/
                     int projHeight = (int)((camera.height - heightMap[mapoffset].r) / z * SCALE_FACTOR + camera.horizon);
                     projHeight = projHeight < 0 ? 0: projHeight;
                     projHeight = projHeight > SCREEN_HEIGHT ? SCREEN_HEIGHT - 1: projHeight;
@@ -257,6 +251,8 @@ int main() {
 
                         for (size_t y = (projHeight + lean); y < (maxHeight + lean); y++) {
                             Color pixel = colorMap[mapoffset];
+
+                            // Here we scale our pixel to introduce fog.
                             Color scaledPixel = GetScaledPixel(pixel, (Color){180, 180, 180, 255}, GetExponentialFogFactor(fogDensity, z));
                             if (fogType == 1) {
                                 if (fogEnd <= fogStart) {
