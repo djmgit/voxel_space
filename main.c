@@ -162,7 +162,7 @@ char* DropdownOptions() {
 int main() {
     LoadMaps();
     char *dropDownText = DropdownOptions();
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Voxel space rendering");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Voxel space");
     
     Image colorMapImage = LoadImage(maps[selectedMap].colorMap);
     Image heightMapImage = LoadImage(maps[selectedMap].heightMap);
