@@ -106,14 +106,24 @@ void ProcessInput(float timeDelta) {
 }
 
 int GetLinearFogFactor(int fogEnd, int fogStart, int z) {
+    // module for creating fog factor using linear fog
+    // https://learn.microsoft.com/en-us/windows/win32/direct3d9/fog-formulas
     return (int)((fogEnd - z) / (fogEnd - fogStart));
 }
 
 float GetExponentialFogFactor(float fogDensity, int z) {
+    // module for creating fog factor applying exponential density
+    // https://learn.microsoft.com/en-us/windows/win32/direct3d9/fog-formulas
     return (1 / exp(z * fogDensity));
 }
 
 Color GetScaledPixel(Color pixel, Color fog, float fogFactor) {
+    // Scaling a given fixel with the fog color using our fog factor
+    // p = original pixel
+    // s = scaled pixel
+    // f = fog pixel
+    // ff = fog factor
+    // s = p*ff + (1-f)*ff
     pixel.r = pixel.r * fogFactor;
     pixel.g = pixel.g * fogFactor;
     pixel.b = pixel.b * fogFactor;
@@ -137,14 +147,6 @@ void LoadMaps() {
         sprintf(map.heightMap, "resources/map%d.height.gif", (int)i);
         maps[i] = map;
     }
-    //maps[0] = (map_t){
-        //.colorMap = "resources/map0.color.gif",
-        //.heightMap = "resources/map0.height.gif"
-    //};
-    //maps[1] = (map_t){
-        //.colorMap = "resources/map1.color.gif",
-        //.heightMap = "resources/map1.height.gif"
-    //};
 }
 
 char* DropdownOptions() {
@@ -172,6 +174,8 @@ int main() {
 
     while(!WindowShouldClose()) {
         ClearBackground(RAYWHITE);
+
+        // Switch color map and height map if user choses a different map
         if (currentSelectedMap != selectedMap) {
             selectedMap = currentSelectedMap;
             colorMapImage = LoadImage(maps[selectedMap].colorMap);
@@ -179,12 +183,44 @@ int main() {
             colorMap = LoadImageColors(colorMapImage);
             heightMap = LoadImageColors(heightMapImage);
         }
+
+        // use time passed since last frame drawn to calculate distances
+        // for movements
         float timeDelta = GetFrameTime();
         ProcessInput(timeDelta);
 
         float sinangle = sin(camera.angle);
         float cosangle = cos(camera.angle);
 
+        /*
+        Here we begin with our voxel space rendering algorith. I will try to explain how it works but willa void too much
+        details since several good articles online.
+        The first thing we need is a camera, we need to decide our field of view (FOV) and the distance we can see in the
+        z direction (zfar). 90 degree or pi/2 is a good FOV.
+
+            (plx,ply)       zfar        (prx,pry)
+                 \            |            /
+                   \          |          /
+                     \        |        /
+                       \      |      /
+                         \    |    /
+                           \  |  /
+                             \|/
+                            (x, y)
+
+        This is how the camera and the extreme left and right casted rays look when the camera is facing up along y axis. In order
+        to account for camera rotation we will have to utilise 2d vector rotation.
+        Next we divide the distance between the two points of the extreme rays by the width of our screen and then for each
+        column we cast a ray. Then along each such ray we go pixel by pixel and fetch the pixels color and height value from the
+        color map and the height map. Once we have the pixel and height we draw the pixel at the appropriate position using the
+        ray colum as x and height as y.
+        Okay we do not use the exact height we are getting from the height map but rather using that height we calculate something
+        called the projected height where we also consider the zfar value that is how far looking into the z axis to give it a feel
+        of perspective.
+        We render the pixels front to back, what this essentially mean is if we find a pixel whose projected height is less than a
+        previous pixel, then we dont render the pixel because anywats it wont be visible on the screen. And that is pretty much
+        the crux of voxel space algorithm.
+        */
         float plx = cosangle * camera.zfar + sinangle * camera.zfar;
         float ply = sinangle * camera.zfar - cosangle * camera.zfar;
 
