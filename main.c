@@ -5,9 +5,9 @@
 #include <stdio.h>
 #include <math.h>
 
+#define GUI_CONTROLS 1
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 400
-#define CONTROLS_HEIGHT 200
 #define FPS 60
 #define MAP_N 1024
 #define SCALE_FACTOR 100.0
@@ -235,15 +235,16 @@ int main() {
                     }
                 }
             }
-            GuiToggleSlider((Rectangle){ 5, 5, 150, 10 }, "Density;Linear", &fogType);
-            if (fogType == 0) {
-                GuiSliderBar((Rectangle){ 70, 20, 150, 10 }, "Fog Density", TextFormat("%1.4f", fogDensity), &fogDensity, 0.0, 0.02);
-            } else {
-                GuiSliderBar((Rectangle){ 70, 20, 150, 10 }, "Fog Start", TextFormat("%3.2f", fogStart), &fogStart, 0.0, camera.zfar*1.0);
-                GuiSliderBar((Rectangle){ 70, 35, 150, 10 }, "Fog End", TextFormat("%3.2f", fogEnd), &fogEnd, fogStart+1, camera.zfar*1.0);
-            }
-            if (GuiDropdownBox((Rectangle){ 480, 5, 150, 10 }, dropDownText, &currentSelectedMap, mapSelectorMode)) mapSelectorMode = !mapSelectorMode;
-            //GuiSliderBar((Rectangle){ 100, 500, 200, 20 }, "Fog Density", NULL, &fogDensity, 0.0, 0.02);
+            #ifdef GUI_CONTROLS
+                GuiToggleSlider((Rectangle){ 5, 5, 150, 10 }, "Density;Linear", &fogType);
+                if (fogType == 0) {
+                    GuiSliderBar((Rectangle){ 70, 20, 150, 10 }, "Fog Density", TextFormat("%1.4f", fogDensity), &fogDensity, 0.0, 0.02);
+                } else {
+                    GuiSliderBar((Rectangle){ 70, 20, 150, 10 }, "Fog Start", TextFormat("%3.2f", fogStart), &fogStart, 0.0, camera.zfar*1.0);
+                    GuiSliderBar((Rectangle){ 70, 35, 150, 10 }, "Fog End", TextFormat("%3.2f", fogEnd), &fogEnd, fogStart+1, camera.zfar*1.0);
+                }
+                if (GuiDropdownBox((Rectangle){ 480, 5, 150, 10 }, dropDownText, &currentSelectedMap, mapSelectorMode)) mapSelectorMode = !mapSelectorMode;
+            #endif
 
         EndDrawing();
     }
