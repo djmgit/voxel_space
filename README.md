@@ -30,12 +30,19 @@ You should be presented with raylib window.
 ## Controls:
 
 Up arraow  - Move front
+
 Down arrow - Move down
+
 W          - Tilt camera up
+
 S          - Title camera down
+
 Q          - Lift camera up
+
 E          - Bring camera down
+
 A          - Tilt camera on left
+
 D          - Tilt camera on right
 
 ## Adding fog
