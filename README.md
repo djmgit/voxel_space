@@ -27,6 +27,17 @@ For building and running you can do the following:
 
 You should be presented with raylib window.
 
+## Controls:
+
+Up arraow  - Move front
+Down arrow - Move down
+W          - Tilt camera up
+S          - Title camera down
+Q          - Lift camera up
+E          - Bring camera down
+A          - Tilt camera on left
+D          - Tilt camera on right
+
 ## Adding fog
 
 I gave a shot at adding fog to the scene. Fog is a useful tool to hide clipping of the graphics at the far end of the z axis. I tried to implement two different fog
